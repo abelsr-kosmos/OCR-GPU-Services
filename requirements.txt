@@ -1,0 +1,33 @@
+# FastAPI and web server
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+pydantic>=2.7.0
+python-dotenv==1.0.0
+
+# PaddleOCR and dependencies
+git+https://github.com/sfernandez26/PaddleOCR.git
+shapely
+scikit-image
+imgaug
+pyclipper
+lmdb
+tqdm
+numpy<2.0
+rapidfuzz
+opencv-python
+opencv-contrib-python
+cython
+Pillow
+pyyaml
+requests
+albucore==0.0.16
+albumentations==1.4.10
+
+# ML model dependencies - PyTorch with CUDA 11.7 support
+--extra-index-url https://download.pytorch.org/whl/cu117
+torch==2.0.1+cu117
+torchvision==0.15.2+cu117
+pandas>=1.3.0
+matplotlib>=3.5.0
+scipy>=1.7.0 

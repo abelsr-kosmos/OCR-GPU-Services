@@ -1,0 +1,1 @@
+"""OCR Processing Service - A FastAPI service for processing and classifying documents.""" 

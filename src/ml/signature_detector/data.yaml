@@ -1,0 +1,5 @@
+train: /home/ubuntu/multidocument-detection/signatures/data/yolo/images/train
+val: /home/ubuntu/multidocument-detection/signatures/data/yolo/images/val
+
+nc: 1
+names: [ 'signature']
