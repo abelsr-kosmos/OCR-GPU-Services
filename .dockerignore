@@ -1,48 +1,40 @@
-# Git
+# Git files
 .git
 .gitignore
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
+# Virtual environment
+.venv/
 venv/
-ENV/
+*/venv/
+*/.venv/
 
-# IDE
-.idea/
+# IDE/Editor files
 .vscode/
-*.swp
-*.swo
+.idea/
 
-# Logs
-*.log
-logs/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Docker
-Dockerfile
-.dockerignore
+# Build artifacts
+build/
+dist/
+*.egg-info/
 
-# Other
+# Notebooks (if not needed in the image)
+notebooks/
+*.ipynb
+
+# OS generated files
 .DS_Store
-.env
-.env.* 
+Thumbs.db
+
+# Docker specific files (already in docker/ )
+docker/
+Dockerfile*
+docker-compose* 
+
+# virtualenv
+.venv/

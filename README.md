@@ -1,144 +1,82 @@
-# OCR Processing Service
+# 🔍 Kosmos OCR General GPU Services 🚀
 
-A FastAPI service for processing and classifying documents with optional features like docTR, QR code detection, and signature detection.
+## 📋 Overview
+This project provides a set of GPU-accelerated OCR (Optical Character Recognition) and document processing services through a FastAPI application. It offers various tools for document classification, text extraction, QR code detection, signature verification, and document rendering.
 
-## Project Structure
+## ✨ Features
+- **Document Classification** 📄: Classify documents based on their content and structure
+- **OCR Processing** 🔤: Extract text from images using PaddleOCR and DocTR
+- **QR Code Detection** 📱: Identify and decode QR codes in documents
+- **Signature Verification** ✍️: Detect and verify signatures in documents
+- **Document Detection** 🔎: Identify document boundaries and types
+- **Document Rendering** 🖼️: Generate visual representations of documents
 
-The project follows Clean Architecture principles:
+## 🌐 API Endpoints
+
+### Classification
+- `POST /api/v1/classify/`: Classify multiple documents with reference information
+
+### Tools
+- `POST /api/v1/tools/paddle-ocr`: Process documents using PaddleOCR
+- `POST /api/v1/tools/doctr`: Process documents using DocTR
+- `POST /api/v1/tools/classify`: Classify a single document
+- `POST /api/v1/tools/qr`: Detect QR codes in documents
+- `POST /api/v1/tools/signature`: Verify signatures in documents
+- `POST /api/v1/tools/doc-detector`: Detect document boundaries
+- `POST /api/v1/tools/render`: Render documents
+
+## 🔧 Technical Details
+- Built with FastAPI for high-performance API endpoints
+- Utilizes GPU acceleration with Paddle for OCR processing
+- Implements a service-oriented architecture with dependency injection
+- Processes documents as entities through a domain-driven design approach
+
+## 📂 Project Structure
 
 ```
-src/
-├── domain/                    # Core business logic
-│   ├── entities/             # Business entities
-│   └── repositories/         # Repository interfaces
-├── application/              # Application services
-│   └── services/            # Service implementations
-└── infrastructure/           # External concerns
-    ├── api/                 # API layer
-    │   ├── main.py         # FastAPI application
-    │   └── routes/         # API routes
-    └── repositories/       # Repository implementations
+OCR-GPU-Services/
+├── app/             # Main application source code
+│   ├── api/         # API endpoint definitions
+│   ├── core/        # Core configuration and settings
+│   ├── domain/      # Domain models and entities
+│   ├── services/    # Business logic and services
+│   └── main.py      # FastAPI application entry point
+├── docker/          # Docker related files (Dockerfile, etc.)
+├── notebooks/       # Jupyter notebooks for experimentation
+├── .venv/           # Virtual environment (usually excluded from Git)
+├── .git/            # Git repository files
+├── README.md        # Project description and instructions
+└── requirements.txt # Python dependencies
 ```
 
-## Features
+## 🐳 Docker Instructions
 
-- Clean Architecture implementation
-- File processing and classification
-- Optional docTR processing
-- Optional QR code detection
-- Optional signature detection
-- Comprehensive logging
-- Docker support
-- CORS enabled
+### Prerequisites
+- Docker installed on your system.
+- For GPU support: NVIDIA drivers and NVIDIA Container Toolkit installed on the host machine.
 
-## Setup
+### Building the Image
 
-### Local Development
-
-1. Create a virtual environment (recommended):
+**GPU Version:**
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+docker build -t ocr-gpu-services -f docker/Dockerfile .
 ```
 
-2. Install dependencies:
+**CPU Version:**
 ```bash
-pip install -r requirements.txt
+# Note: Ensure your requirements.txt is suitable for CPU or create a separate requirements-cpu.txt
+docker build -t ocr-cpu-services -f docker/Dockerfile.cpu .
 ```
 
-3. Run the service:
+### Running the Container
+
+**GPU Version:**
 ```bash
-python -m src.infrastructure.api.main
+# Requires NVIDIA drivers and NVIDIA Container Toolkit on the host
+docker run --gpus all -p 8000:8000 ocr-gpu-services
 ```
 
-The service will be available at `http://localhost:8000`
-
-### Docker Deployment
-
-1. Build the Docker image:
+**CPU Version:**
 ```bash
-docker build -t ocr-processing-service .
+docker run -p 8000:8000 ocr-cpu-services
 ```
-
-2. Run the container:
-```bash
-docker run -p 8000:8000 ocr-processing-service
-```
-
-The service will be available at `http://localhost:8000`
-
-## Logging
-
-The service includes comprehensive logging:
-- Console output with human-readable format
-- JSON-formatted logs in `app.log`
-- Log rotation (10MB per file, 5 backup files)
-- Request/response logging with timing information
-- Error logging with stack traces
-
-## API Endpoints
-
-### 1. Classify and Process File
-- **Endpoint**: `/api/v1/classify-n-process-file`
-- **Method**: POST
-- **Parameters**:
-  - `file`: The file to process (required)
-  - `doctr`: Boolean (optional, default: false) - Enable docTR processing
-  - `qr`: Boolean (optional, default: false) - Enable QR code detection
-  - `signature`: Boolean (optional, default: false) - Enable signature detection
-
-### 2. Process File
-- **Endpoint**: `/api/v1/process-file`
-- **Method**: POST
-- **Parameters**:
-  - `file`: The file to process (required)
-  - `qr`: Boolean (optional, default: false) - Enable QR code detection
-  - `signature`: Boolean (optional, default: false) - Enable signature detection
-
-## API Documentation
-
-Once the service is running, you can access the interactive API documentation at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Example Usage
-
-Using curl:
-```bash
-# Classify and process file with all features enabled
-curl -X POST "http://localhost:8000/api/v1/classify-n-process-file?doctr=true&qr=true&signature=true" \
-     -H "accept: application/json" \
-     -H "Content-Type: multipart/form-data" \
-     -F "file=@your_file.pdf"
-
-# Process file with QR detection
-curl -X POST "http://localhost:8000/api/v1/process-file?qr=true" \
-     -H "accept: application/json" \
-     -H "Content-Type: multipart/form-data" \
-     -F "file=@your_file.pdf"
-```
-
-## Development
-
-### Architecture
-
-The project follows Clean Architecture principles:
-1. **Domain Layer**: Contains business entities and repository interfaces
-2. **Application Layer**: Contains use cases and business rules
-3. **Infrastructure Layer**: Contains external concerns like API, database, etc.
-
-### Logging Configuration
-
-The service uses Python's built-in logging module with the following configuration:
-- Console output for development
-- JSON-formatted file logging for production
-- Log rotation to prevent disk space issues
-- Request/response timing information
-- Error tracking with stack traces
-
-### Docker Development
-
-For development with Docker, you can mount your local directory to enable live code changes:
-```bash
-docker run -p 8000:8000 -v $(pwd):/app ocr-processing-service
-``` 

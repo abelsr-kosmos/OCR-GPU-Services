@@ -1,0 +1,45 @@
+# Base image (CPU only)
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libzbar0 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    poppler-utils \
+    wget \
+    libgomp1 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements file
+# NOTE: You might need a separate requirements-cpu.txt if your current one has GPU-specific packages
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install qreader
+
+# Install nltk data
+RUN python -c "import nltk; nltk.download('stopwords')"
+
+# Install Paddle model
+RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True,lang='en',det_lang='ml')"
+
+# Copy project files
+COPY . .
+
+# Expose port
+EXPOSE 8000
+
+# Specify the command to run the application (update if needed)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
