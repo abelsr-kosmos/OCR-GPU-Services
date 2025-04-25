@@ -1,24 +1,18 @@
 from fastapi import Depends
+from functools import lru_cache
 from app.services.qr_service import QRService
 from app.services.classify import ClassifyService
 from app.services.doctr_service import DocTRService
 from app.services.paddle_service import PaddleService
 from app.services.doc_detector import DocumentDetector
 from app.services.signature_service import SignatureService
-from functools import lru_cache
 
-# Import service_cache from main (avoiding circular import)
 try:
     from app.main import service_cache
 except ImportError:
-    # For initialization in main.py (first import)
     service_cache = {}
 
-# Single DocTRService instance to avoid reinitialization per request
 _doctr_service_singleton = DocTRService()
-
-# Create service provider functions with dependency caching
-# FastAPI will automatically cache these dependencies
 
 def get_classify_service() -> ClassifyService:
     if "classify_service" not in service_cache:

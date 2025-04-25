@@ -2,8 +2,8 @@ import time
 from typing import Literal
 
 from PIL import Image
-from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, Query
 from starlette.concurrency import run_in_threadpool
+from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, Query
 
 from app.services.qr_service import QRService
 from app.services.doctr_service import DocTRService

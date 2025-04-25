@@ -5,15 +5,15 @@ import json
 import concurrent.futures
 from typing import Tuple, Optional, List, Dict, Any
 
-def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, float, int, Optional[str]]:
+def send_qr_request(request_id: int, file_path: str, url: str) -> Tuple[int, float, int, Optional[str]]:
     """
-    Sends a POST request with an image file to the specified OCR URL
+    Sends a POST request with an image file to the specified QR code detection URL
     and returns the request ID, duration, status code, and any error message.
 
     Args:
         request_id (int): An identifier for the request.
         file_path (str): The path to the image file.
-        url (str): The URL of the OCR endpoint.
+        url (str): The URL of the QR endpoint.
 
     Returns:
         Tuple[int, float, int, Optional[str]]: (request_id, duration, status_code, error_message)
@@ -22,38 +22,50 @@ def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, fl
     """
     headers = {
         'accept': 'application/json',
+        # 'Content-Type: multipart/form-data' is handled by requests when using 'files'
     }
     start_time = time.time()
     status_code = -1
     error_message = None
-    # Suppress individual request prints for cleaner summary output
-    # print_prefix = f"  [Conc {request_id // 1000}, Req {request_id % 1000}]" # Example prefix if needed
+    response = None # Initialize response to None
 
     try:
         # Open the file in binary read mode for each request
         with open(file_path, 'rb') as f:
+            # Determine file type based on extension for Content-Type (optional but good practice)
+            # Defaulting to image/jpeg as per curl example, adjust if needed
+            file_basename = os.path.basename(file_path)
+            content_type = 'image/jpeg' # Default based on curl
+            if file_basename.lower().endswith('.png'):
+                content_type = 'image/png'
+            elif file_basename.lower().endswith('.bmp'):
+                content_type = 'image/bmp'
+            # Add more types if necessary
+
             files = {
-                'file': (os.path.basename(file_path), f, 'image/jpeg')
+                'file': (file_basename, f, content_type)
             }
 
             # Send the POST request
-            response = requests.post(url, headers=headers, files=files, timeout=120) # Increased timeout for potentially slower concurrent runs
+            response = requests.post(url, headers=headers, files=files, timeout=120) # Timeout in seconds
             status_code = response.status_code
 
             # Raise an HTTPError for bad responses (4xx or 5xx) to be caught below
             response.raise_for_status()
 
-            # Attempt to parse JSON to ensure valid response format (optional)
+            # Attempt to parse JSON to ensure valid response format
             try:
                 response.json()
             except requests.exceptions.JSONDecodeError as json_err:
                 # Treat JSON decode error as a specific type of failure if needed
                 # For now, we still consider the HTTP request successful if status is 2xx
-                # print(f"{print_prefix} Warning: Received non-JSON response (Status: {status_code}): {response.text[:100]}...")
+                # print(f"Warning: Received non-JSON response (Status: {status_code}): {response.text[:100]}...")
                 pass # Keep it silent for summary
 
     except requests.exceptions.HTTPError as http_err:
-        error_message = f"HTTP Error: {http_err}"
+        # Include response text in the error message if available
+        response_text = response.text[:200] if response else "N/A"
+        error_message = f"HTTP Error: {http_err} - Response: {response_text}"
     except requests.exceptions.ConnectionError as conn_err:
         error_message = f"Connection Error: {conn_err}"
     except requests.exceptions.Timeout as timeout_err:
@@ -70,34 +82,36 @@ def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, fl
         end_time = time.time()
         duration = end_time - start_time
 
-    # Suppress individual request prints
+    # Suppress individual request prints for cleaner summary output
     # if error_message:
-    #     print(f"{print_prefix} Failed: {error_message} (Duration: {duration:.4f}s)")
+    #     print(f"  Request {request_id}: Failed: {error_message} (Duration: {duration:.4f}s)")
     # else:
-    #     print(f"{print_prefix} Completed: Status {status_code} (Duration: {duration:.4f}s)")
+    #     print(f"  Request {request_id}: Completed: Status {status_code} (Duration: {duration:.4f}s)")
 
     return request_id, duration, status_code, error_message
 
 
 if __name__ == "__main__":
     # --- Configuration ---
-    ocr_url = 'https://lg7q7vlkotwzva-8000.proxy.runpod.net/tools/paddle-ocr'
+    # Default URL for the QR endpoint
+    qr_url = 'https://lg7q7vlkotwzva-8000.proxy.runpod.net/tools/qr'
     # Use a default image or allow override via environment variable
-    image_file = os.environ.get('OCR_TEST_IMAGE', 'RECIBO_TELMEX.jpg')
-    # Number of requests per concurrency level (adjust if needed)
-    requests_per_level = 10
+    # Ensure this image actually contains a QR code for meaningful testing
+    image_file = 'CFE-Inferencia.jpg'
+    # Number of requests per concurrency level
+    requests_per_level = 20
     # Concurrency levels to test
-    concurrency_levels = range(1, 11) # Test from 1 to 10 concurrent requests
+    concurrency_levels = [1, 4, 8]
     # --- End Configuration ---
 
     # Check if the file exists before starting
     if not os.path.exists(image_file):
-        print(f"Error: File not found at {image_file}")
-        print("Please ensure the image file exists or set OCR_TEST_IMAGE environment variable.")
+        print(f"Error: Test image file not found at '{image_file}'")
+        print("Please ensure the image file exists or set the QR_TEST_IMAGE environment variable.")
         exit(1) # Exit if file not found
 
-    print(f"Starting OCR concurrency test for levels {min(concurrency_levels)} to {max(concurrency_levels)}")
-    print(f"Target URL: {ocr_url}")
+    print(f"Starting QR endpoint concurrency test for levels {min(concurrency_levels)} to {max(concurrency_levels)}")
+    print(f"Target URL: {qr_url}")
     print(f"Image file: {image_file}")
     print(f"Requests per level: {requests_per_level}\n")
 
@@ -113,7 +127,7 @@ if __name__ == "__main__":
             # Submit tasks
             # Assign unique IDs across all tests if needed, or just 0 to N-1 for this level
             futures = [
-                executor.submit(send_ocr_request, i, image_file, ocr_url)
+                executor.submit(send_qr_request, i, image_file, qr_url)
                 for i in range(requests_per_level) # Send N requests for this level
             ]
 
@@ -123,7 +137,7 @@ if __name__ == "__main__":
                     result = future.result()
                     results.append(result)
                 except Exception as exc:
-                    # Catch exceptions raised *during* the future's execution if not caught inside send_ocr_request
+                    # Catch exceptions raised *during* the future's execution if not caught inside send_qr_request
                     print(f'  A request generated an unhandled exception: {exc}')
                     # Append a placeholder or specific error result if needed
                     results.append((-1, 0.0, -99, str(exc))) # Example error placeholder
@@ -169,7 +183,7 @@ if __name__ == "__main__":
 
 
     # --- Final Summary Table ---
-    print("\n--- Overall Concurrency Test Summary ---")
+    print("\n--- Overall QR Endpoint Concurrency Test Summary ---")
     print(f"{'Concurrency':<12} | {'Total Time':<12} | {'Successful':<10} | {'Failed':<8} | {'Avg Time':<12} | {'Min Time':<12} | {'Max Time':<12}")
     print("-" * 90)
 

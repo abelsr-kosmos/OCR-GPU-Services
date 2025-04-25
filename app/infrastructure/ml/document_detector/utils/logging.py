@@ -5,6 +5,7 @@ import wandb
 import cv2
 import numpy as np
 import json
+from typing import List, Dict
 
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -55,7 +56,7 @@ def coco_log(log_dir, stats):
     ]
     log_dict = {}
     # for i, key in enumerate(log_dict_keys):
-    #     log_dict[key] = stats[i]
+    #     log_Dict[key] = stats[i]
 
     with open(f"{log_dir}/train.log", "a+") as f:
         f.writelines("\n")
@@ -118,11 +119,11 @@ def csv_log(
             "epoch": int(epoch + 1),
             "map_05": [float(stats[0])],
             "map": [float(stats[1])],
-            "train loss": train_loss_list[-1],
-            "train cls loss": loss_cls_list[-1],
-            "train box reg loss": loss_box_reg_list[-1],
-            "train obj loss": loss_objectness_list[-1],
-            "train rpn loss": loss_rpn_list[-1],
+            "train loss": train_loss_List[-1],
+            "train cls loss": loss_cls_List[-1],
+            "train box reg loss": loss_box_reg_List[-1],
+            "train obj loss": loss_objectness_List[-1],
+            "train rpn loss": loss_rpn_List[-1],
         }
     )
     df.to_csv(
@@ -172,10 +173,10 @@ def wandb_log(
     # for i in range(len(loss_cls_list)):
     wandb.log(
         {
-            "train_loss_cls": loss_cls_list[-1],
-            "train_loss_box_reg": loss_box_reg_list[-1],
-            "train_loss_obj": loss_objectness_list[-1],
-            "train_loss_rpn": loss_rpn_list[-1],
+            "train_loss_cls": loss_cls_List[-1],
+            "train_loss_box_reg": loss_box_reg_List[-1],
+            "train_loss_obj": loss_objectness_List[-1],
+            "train_loss_rpn": loss_rpn_List[-1],
         }
     )
     wandb.log(

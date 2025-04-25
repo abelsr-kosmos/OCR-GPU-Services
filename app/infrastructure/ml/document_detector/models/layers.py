@@ -108,7 +108,7 @@ class Backbone(nn.Module, metaclass=ABCMeta):
         """
         Subclasses must override this method, but adhere to the same return type.
         Returns:
-            dict[str->Tensor]: mapping from feature name (e.g., "res2") to tensor
+            Dict[str->Tensor]: mapping from feature name (e.g., "res2") to tensor
         """
         pass
 
@@ -145,7 +145,7 @@ class Backbone(nn.Module, metaclass=ABCMeta):
     def output_shape(self):
         """
         Returns:
-            dict[str->ShapeSpec]
+            Dict[str->ShapeSpec]
         """
         # this is a backward-compatible default
         return {
@@ -416,11 +416,11 @@ class FrozenBatchNorm2d(nn.Module):
             # No running_mean/var in early versions
             # This will silent the warnings
             if prefix + "running_mean" not in state_dict:
-                state_dict[prefix + "running_mean"] = torch.zeros_like(
+                state_Dict[prefix + "running_mean"] = torch.zeros_like(
                     self.running_mean
                 )
             if prefix + "running_var" not in state_dict:
-                state_dict[prefix + "running_var"] = torch.ones_like(
+                state_Dict[prefix + "running_var"] = torch.ones_like(
                     self.running_var
                 )
 

@@ -1,8 +1,6 @@
-from typing import Literal, Any
+from typing import Literal, Any, List, Dict, Tuple, Union
 
 import torch
-import os
-from pathlib import Path
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
 
@@ -11,25 +9,27 @@ from app.schemas.schemas import OCROut, OCRPage, OCRBlock, OCRLine, OCRWord
 import time
 from loguru import logger
 
-# Get cache directory from environment or use default
-DOCTR_CACHE_DIR = os.environ.get("DOCTR_CACHE_DIR", str(Path("./model_cache/doctr").absolute()))
-os.makedirs(DOCTR_CACHE_DIR, exist_ok=True)
-logger.info(f"Using DocTR cache directory: {DOCTR_CACHE_DIR}")
 
 class DocTRRunner:
     def __init__(self):
-        # Use cache_dir parameter to control where pretrained models are downloaded
-        self.model = ocr_predictor(pretrained=True, cache_dir=DOCTR_CACHE_DIR)
+        model = ocr_predictor(pretrained=True)
         if torch.cuda.is_available():
-            self.model.to("cuda").eval()
+            model.to("cuda").eval().half()
+            try:
+                self.model = torch.compile(model, mode="reduce-overhead")
+                logger.info("Torch model compiled successfully.")
+            except Exception as e:
+                logger.warning(f"Torch compile failed: {e}. Falling back to eager mode.")
+                self.model = model
             logger.info("Using GPU for OCR")
         else:
-            self.model.to("cpu").eval()
+            model.to("cpu").eval()
+            self.model = model
             logger.info("Using CPU for OCR")
 
     def render(
         self, file: bytes, file_type: Literal["image", "pdf"]
-    ) -> list[dict]:
+    ) -> List[Dict]:
         start_time = time.time()
         if file_type in ["jpg", "jpeg", "png"]:
             doc = DocumentFile.from_images([file])
@@ -49,7 +49,7 @@ class DocTRRunner:
 
     def ocr(
         self, file: bytes, file_type: Literal["image", "pdf"]
-    ) -> list[dict]:
+    ) -> List[Dict]:
         if file_type in ["jpg", "jpeg", "png"]:
             doc = DocumentFile.from_images([file])
         elif file_type == "pdf":
@@ -105,8 +105,7 @@ class DocTRRunner:
         self,
         geom: Any,
     ) -> (
-        tuple[float, float, float, float]
-        | tuple[float, float, float, float, float, float, float, float]
+        Union[Tuple[float, float, float, float],  Tuple[float, float, float, float, float, float, float, float]]
     ):
         if len(geom) == 4:
             return (*geom[0], *geom[1], *geom[2], *geom[3])

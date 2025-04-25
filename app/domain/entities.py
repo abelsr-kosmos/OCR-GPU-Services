@@ -1,13 +1,13 @@
-from typing import Optional, Any
 from dataclasses import dataclass
+from typing import Any, List, Tuple, Dict
 
 
 @dataclass
 class CoordinatesEntity:
-    x1: list[int, int]
-    x2: list[int, int]
-    x3: list[int, int]
-    x4: list[int, int]
+    x1: Tuple[int, int]
+    x2: Tuple[int, int]
+    x3: Tuple[int, int]
+    x4: Tuple[int, int]
 
 
 @dataclass
@@ -19,7 +19,7 @@ class ItemEntity:
 
 @dataclass
 class PageEntity:
-    items: list[ItemEntity]
+    items: List[ItemEntity]
     text: str
     width: int
     height: int
@@ -30,11 +30,11 @@ class ReferenceEntity:
     id: str
     target: str
     text: str
-    pages: list[PageEntity]
+    pages: List[PageEntity]
     width: int
     height: int
-    template: dict[str, Any]
-    example: dict[str, Any]
+    template: Dict[str, Any]
+    example: Dict[str, Any]
     qr: bool
     signature: bool
     render: bool
@@ -43,12 +43,12 @@ class ReferenceEntity:
 @dataclass
 class FileEntity:
     file: bytes
-    references_info: list[ReferenceEntity]
+    references_info: List[ReferenceEntity]
 
 
 @dataclass
 class ClassifyEntity:
     reference_result: str
-    qr: list[str]
+    qr: List[str]
     signature: int
     render: str

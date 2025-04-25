@@ -3,12 +3,13 @@ import base64
 from io import BytesIO
 
 import cv2
+import torch
 import numpy as np
 import ultralytics
 from PIL import Image
 from PIL import ImageEnhance
-from pdf2image import convert_from_path
 
+from loguru import logger   
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -17,6 +18,13 @@ class SignatureDetector:
         self.model = ultralytics.YOLO(
             os.path.join(CURRENT_DIR, "best.pt")
         )
+
+        if torch.cuda.is_available():
+            self.model.to("cuda").eval()
+            logger.info("Using GPU for OCR")
+        else:
+            self.model.to("cpu").eval()
+            logger.info("Using CPU for OCR")
 
     def detect_signatures(self, image: np.ndarray) -> int:
         """ "
@@ -46,7 +54,7 @@ class SignatureDetector:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         
-        for i, row in df.iterrows():
+        for _, row in df.iterrows():
             if row["class"] == 0:
                 bbox_data = row["box"]
                 x0, y0, x1, y1 = bbox_data.values()

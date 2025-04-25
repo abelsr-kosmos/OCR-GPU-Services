@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import Tuple
+from typing import Tuple, List, Union
 
 import numpy as np
 from PIL import Image
@@ -14,7 +14,7 @@ class SignatureService:
         img = Image.open(BytesIO(file))
         return np.array(img)
 
-    def detect(self, file: bytes, return_img: bool) -> list | int:
+    def detect(self, file: bytes, return_img: bool) -> Union[List, int]:  
         if return_img:
             result = self._detector.extract_signatures(self._preprocess_image(file))
             return result

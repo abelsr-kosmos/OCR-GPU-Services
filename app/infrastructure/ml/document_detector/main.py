@@ -12,6 +12,8 @@ from .utils.annotations import convert_detections
 from .utils.transforms import infer_transforms, resize
 from .models.create_fasterrcnn_model import create_model
 
+from loguru import logger
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class DocumentDetector:
@@ -80,6 +82,11 @@ class DocumentDetector:
             self.model.load_state_dict(checkpoint["model_state_dict"])
         
         self.model.to(self.DEVICE).eval()
+        if torch.cuda.is_available():
+            self.model.half()
+            logger.info("Using GPU for OCR")
+        else:
+            logger.info("Using CPU for OCR")
 
     def detect(self, input):
         test_images = [input]

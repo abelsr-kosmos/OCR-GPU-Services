@@ -52,7 +52,7 @@ class OCRclassifier(object):
 
     def predict(
         self, sample: Dict, reference_samples: List[Dict]
-    ) -> Tuple[int | None, float | None]:
+    ) -> Tuple[Union[int, None], Union[float, None]]:
         """
         Predicts the class of the inference document according to a list of reference documents.
         Uses PyTorch for GPU acceleration.

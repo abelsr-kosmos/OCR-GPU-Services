@@ -1,13 +1,13 @@
-from typing import Any
+from typing import Any, List, Tuple, Dict, Union
 
 from pydantic import BaseModel, Field
 
 
 class CoordinatesSchema(BaseModel):
-    x1: list[int, int]
-    x2: list[int, int]
-    x3: list[int, int]
-    x4: list[int, int]
+    x1: Tuple[int, int]
+    x2: Tuple[int, int]
+    x3: Tuple[int, int]
+    x4: Tuple[int, int]
 
 
 class ItemSchema(BaseModel):
@@ -17,43 +17,43 @@ class ItemSchema(BaseModel):
 
 
 class PageSchema(BaseModel):
-    items: list[ItemSchema]
+    items: List[ItemSchema]
 
 
 class ReferenceSchema(BaseModel):
     id: str
     target: str
     text: str
-    pages: list[PageSchema]
+    pages: List[PageSchema]
     width: int
     height: int
-    template: dict[str, Any]
-    example: dict[str, Any]
+    template: Dict[str, Any]
+    example: Dict[str, Any]
     qr: bool
     signature: bool
 
 
 class ClassifySchema(BaseModel):
     reference_result: str
-    qr: list[str]
+    qr: List[str]
     signature: int
     render: str
 
 
 class OCRWord(BaseModel):
     value: str = Field(..., examples=["example"])
-    geometry: list[float] = Field(..., examples=[[0.0, 0.0, 0.0, 0.0]])
+    geometry: List[float] = Field(..., examples=[[0.0, 0.0, 0.0, 0.0]])
     objectness_score: float = Field(..., examples=[0.99])
     confidence: float = Field(..., examples=[0.99])
-    crop_orientation: dict[str, Any] = Field(
+    crop_orientation: Dict[str, Any] = Field(
         ..., examples=[{"value": 0, "confidence": None}]
     )
 
 
 class OCRLine(BaseModel):
-    geometry: list[float] = Field(..., examples=[[0.0, 0.0, 0.0, 0.0]])
+    geometry: List[float] = Field(..., examples=[[0.0, 0.0, 0.0, 0.0]])
     objectness_score: float = Field(..., examples=[0.99])
-    words: list[OCRWord] = Field(
+    words: List[OCRWord] = Field(
         ...,
         examples=[
             {
@@ -68,9 +68,9 @@ class OCRLine(BaseModel):
 
 
 class OCRBlock(BaseModel):
-    geometry: list[float] = Field(..., examples=[[0.0, 0.0, 0.0, 0.0]])
+    geometry: List[float] = Field(..., examples=[[0.0, 0.0, 0.0, 0.0]])
     objectness_score: float = Field(..., examples=[0.99])
-    lines: list[OCRLine] = Field(
+    lines: List[OCRLine] = Field(
         ...,
         examples=[
             {
@@ -90,7 +90,7 @@ class OCRBlock(BaseModel):
 
 
 class OCRPage(BaseModel):
-    blocks: list[OCRBlock] = Field(
+    blocks: List[OCRBlock] = Field(
         ...,
         examples=[
             {
@@ -121,14 +121,14 @@ class OCRPage(BaseModel):
 
 class OCROut(BaseModel):
     name: str = Field(..., examples=["example.jpg"])
-    orientation: dict[str, float | None] = Field(
+    orientation: Dict[str, Union[float, None]] = Field(
         ..., examples=[{"value": 0.0, "confidence": 0.99}]
     )
-    language: dict[str, str | float | None] = Field(
+    language: Dict[str, Union[str, float, None]] = Field(
         ..., examples=[{"value": "en", "confidence": 0.99}]
     )
-    dimensions: tuple[int, int] = Field(..., examples=[(100, 100)])
-    items: list[OCRPage] = Field(
+    dimensions: Tuple[int, int] = Field(..., examples=[(100, 100)])
+    items: List[OCRPage] = Field(
         ...,
         examples=[
             {

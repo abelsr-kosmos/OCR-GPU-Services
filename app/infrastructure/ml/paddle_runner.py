@@ -1,16 +1,10 @@
+from typing import List
+
 import paddle
 import numpy as np
-import os
-from pathlib import Path
-from loguru import logger
 from paddleocr import PaddleOCR
-
 from app.domain.entities import PageEntity, ItemEntity
 
-# Get cache directory from environment or use default
-PADDLE_CACHE_DIR = os.environ.get("PADDLE_CACHE_DIR", str(Path("./model_cache/paddle").absolute()))
-os.makedirs(PADDLE_CACHE_DIR, exist_ok=True)
-logger.info(f"Using PaddleOCR cache directory: {PADDLE_CACHE_DIR}")
 
 class PaddleOCRRunner:
     def __init__(self):
@@ -20,17 +14,14 @@ class PaddleOCRRunner:
             det_lang="ml",
             show_log=False,
             use_gpu=paddle.device.is_compiled_with_cuda(),
-            det_model_dir=os.path.join(PADDLE_CACHE_DIR, "det_models"),
-            rec_model_dir=os.path.join(PADDLE_CACHE_DIR, "rec_models"),
-            cls_model_dir=os.path.join(PADDLE_CACHE_DIR, "cls_models")
         )
 
-    def predict(self, image: np.ndarray) -> list[dict]:
+    def predict(self, image: np.ndarray) -> List[dict]:
         return self.ocr.ocr(image, cls=True)
 
     @staticmethod
     def process_result(
-        ocr_results: list[dict], width: int, height: int
+        ocr_results: List[dict], width: int, height: int
     ) -> PageEntity:
         pages = []
         texts = ""

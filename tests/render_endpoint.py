@@ -5,15 +5,15 @@ import json
 import concurrent.futures
 from typing import Tuple, Optional, List, Dict, Any
 
-def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, float, int, Optional[str]]:
+def send_render_request(request_id: int, file_path: str, url: str) -> Tuple[int, float, int, Optional[str]]:
     """
-    Sends a POST request with an image file to the specified OCR URL
+    Sends a POST request with an image file to the specified render URL
     and returns the request ID, duration, status code, and any error message.
 
     Args:
         request_id (int): An identifier for the request.
         file_path (str): The path to the image file.
-        url (str): The URL of the OCR endpoint.
+        url (str): The URL of the render endpoint (including query parameters).
 
     Returns:
         Tuple[int, float, int, Optional[str]]: (request_id, duration, status_code, error_message)
@@ -22,6 +22,7 @@ def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, fl
     """
     headers = {
         'accept': 'application/json',
+        # 'Content-Type' is set automatically by requests when using 'files'
     }
     start_time = time.time()
     status_code = -1
@@ -31,29 +32,41 @@ def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, fl
 
     try:
         # Open the file in binary read mode for each request
+        # Determine content type based on file extension (basic example)
+        _, ext = os.path.splitext(file_path)
+        content_type = 'image/jpeg' # Default
+        if ext.lower() == '.png':
+            content_type = 'image/png'
+        elif ext.lower() in ['.jpg', '.jpeg']:
+            content_type = 'image/jpeg'
+        elif ext.lower() == '.pdf':
+             content_type = 'application/pdf' # Assuming the endpoint might support PDFs
+
         with open(file_path, 'rb') as f:
             files = {
-                'file': (os.path.basename(file_path), f, 'image/jpeg')
+                'file': (os.path.basename(file_path), f, content_type)
             }
 
             # Send the POST request
-            response = requests.post(url, headers=headers, files=files, timeout=120) # Increased timeout for potentially slower concurrent runs
+            # The URL should already contain the '?operation=render' query parameter
+            response = requests.post(url, headers=headers, files=files, timeout=180) # Increased timeout for potentially slower rendering
             status_code = response.status_code
 
             # Raise an HTTPError for bad responses (4xx or 5xx) to be caught below
             response.raise_for_status()
 
             # Attempt to parse JSON to ensure valid response format (optional)
-            try:
-                response.json()
-            except requests.exceptions.JSONDecodeError as json_err:
-                # Treat JSON decode error as a specific type of failure if needed
-                # For now, we still consider the HTTP request successful if status is 2xx
-                # print(f"{print_prefix} Warning: Received non-JSON response (Status: {status_code}): {response.text[:100]}...")
-                pass # Keep it silent for summary
+            # Render endpoint might return image data or JSON depending on implementation
+            # For now, just check if the request was successful (2xx)
+            # try:
+            #     response.json() # Or check content type if expecting image
+            # except requests.exceptions.JSONDecodeError as json_err:
+            #     # Treat JSON decode error as a specific type of failure if needed
+            #     # print(f"{print_prefix} Warning: Received non-JSON response (Status: {status_code}): {response.text[:100]}...")
+            #     pass # Keep it silent for summary
 
     except requests.exceptions.HTTPError as http_err:
-        error_message = f"HTTP Error: {http_err}"
+        error_message = f"HTTP Error: {http_err} - Response: {response.text[:200]}" # Include some response text
     except requests.exceptions.ConnectionError as conn_err:
         error_message = f"Connection Error: {conn_err}"
     except requests.exceptions.Timeout as timeout_err:
@@ -81,23 +94,24 @@ def send_ocr_request(request_id: int, file_path: str, url: str) -> Tuple[int, fl
 
 if __name__ == "__main__":
     # --- Configuration ---
-    ocr_url = 'https://lg7q7vlkotwzva-8000.proxy.runpod.net/tools/paddle-ocr'
+    # Default URL for the render endpoint
+    render_url = 'https://lg7q7vlkotwzva-8000.proxy.runpod.net/tools/doctr?operation=render'
     # Use a default image or allow override via environment variable
-    image_file = os.environ.get('OCR_TEST_IMAGE', 'RECIBO_TELMEX.jpg')
+    image_file = 'RECIBO_TELMEX.jpg'
     # Number of requests per concurrency level (adjust if needed)
     requests_per_level = 10
     # Concurrency levels to test
-    concurrency_levels = range(1, 11) # Test from 1 to 10 concurrent requests
+    concurrency_levels = range(1, 10) # Test from 1 to 5 concurrent requests (adjust as needed)
     # --- End Configuration ---
 
     # Check if the file exists before starting
     if not os.path.exists(image_file):
         print(f"Error: File not found at {image_file}")
-        print("Please ensure the image file exists or set OCR_TEST_IMAGE environment variable.")
+        print("Please ensure the image file exists or set the TEST_IMAGE environment variable.")
         exit(1) # Exit if file not found
 
-    print(f"Starting OCR concurrency test for levels {min(concurrency_levels)} to {max(concurrency_levels)}")
-    print(f"Target URL: {ocr_url}")
+    print(f"Starting Render endpoint concurrency test for levels {min(concurrency_levels)} to {max(concurrency_levels)}")
+    print(f"Target URL: {render_url}")
     print(f"Image file: {image_file}")
     print(f"Requests per level: {requests_per_level}\n")
 
@@ -113,7 +127,7 @@ if __name__ == "__main__":
             # Submit tasks
             # Assign unique IDs across all tests if needed, or just 0 to N-1 for this level
             futures = [
-                executor.submit(send_ocr_request, i, image_file, ocr_url)
+                executor.submit(send_render_request, i, image_file, render_url)
                 for i in range(requests_per_level) # Send N requests for this level
             ]
 
@@ -123,7 +137,7 @@ if __name__ == "__main__":
                     result = future.result()
                     results.append(result)
                 except Exception as exc:
-                    # Catch exceptions raised *during* the future's execution if not caught inside send_ocr_request
+                    # Catch exceptions raised *during* the future's execution if not caught inside send_render_request
                     print(f'  A request generated an unhandled exception: {exc}')
                     # Append a placeholder or specific error result if needed
                     results.append((-1, 0.0, -99, str(exc))) # Example error placeholder
@@ -161,15 +175,15 @@ if __name__ == "__main__":
             print(f"  Max Duration (Successful): {level_summary['max_duration']:.4f}s")
         if level_summary['failed'] > 0:
              # Optionally print details of failed requests for this level
-             # print("  Failed request details:")
-             # for req_id, duration, status, err in failed_requests:
-             #      print(f"    Req {req_id}: Status {status}, Duration {duration:.4f}s, Error: {err}")
-             pass # Keep summary clean
+             print("  Failed request details:")
+             for req_id, duration, status, err in failed_requests:
+                  print(f"    Req {req_id}: Status {status}, Duration {duration:.4f}s, Error: {err}")
+             # pass # Keep summary clean
         print("-" * 30 + "\n") # Separator
 
 
     # --- Final Summary Table ---
-    print("\n--- Overall Concurrency Test Summary ---")
+    print("\n--- Overall Render Concurrency Test Summary ---")
     print(f"{'Concurrency':<12} | {'Total Time':<12} | {'Successful':<10} | {'Failed':<8} | {'Avg Time':<12} | {'Min Time':<12} | {'Max Time':<12}")
     print("-" * 90)
 
