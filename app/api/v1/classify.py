@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, UploadFile, File, Body, HTTPException, Depends
 from starlette.concurrency import run_in_threadpool
 
@@ -19,9 +21,9 @@ router = APIRouter(
 
 @router.post("/", response_model=list[ClassifySchema])
 async def classify(
-    files: list[UploadFile] = File(...),
-    references_info: list[ReferenceSchema] = Body(...),
-    classify_service: ClassifyService = Depends(get_classify_service),
+    files: Annotated[list[UploadFile], File(...)],
+    references_info: Annotated[list[ReferenceSchema], Body(...)],
+    classify_service: Annotated[ClassifyService, Depends(get_classify_service)],
 ):
     try:
         contents = [await file.read() for file in files]
