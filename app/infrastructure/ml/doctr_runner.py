@@ -1,6 +1,7 @@
 from typing import Literal, Any, List, Dict, Tuple, Union
 
 import torch
+import gc
 from doctr.io import DocumentFile
 from doctr.models import ocr_predictor
 
@@ -11,21 +12,52 @@ from loguru import logger
 
 
 class DocTRRunner:
+    _instance = None
+    _model = None
+    
+    def __new__(cls):
+        # Implement a singleton pattern to ensure we only have one model in memory
+        if cls._instance is None:
+            cls._instance = super(DocTRRunner, cls).__new__(cls)
+        return cls._instance
+        
     def __init__(self):
+        # Only initialize the model once
+        if DocTRRunner._model is None:
+            logger.info("Initializing DocTR model...")
+            DocTRRunner._model = self._initialize_model()
+        self.model = DocTRRunner._model
+        
+    def _initialize_model(self):
+        # Initialize the model with optimized settings
         model = ocr_predictor(pretrained=True)
+        
         if torch.cuda.is_available():
+            # Use mixed precision for better performance
             model.to("cuda").eval().half()
-            try:
-                self.model = torch.compile(model, mode="reduce-overhead")
-                logger.info("Torch model compiled successfully.")
-            except Exception as e:
-                logger.warning(f"Torch compile failed: {e}. Falling back to eager mode.")
-                self.model = model
-            logger.info("Using GPU for OCR")
+            
+            # # Compile using TensorRT if available
+            # model = torch.compile(
+            #     model,
+            #     backend='torch_tensorrt',
+            #     options={
+            #         "enabled_precisions": {torch.float16},
+            #     }
+            # )
+            
+            # Set lower precision for inference to save memory
+            with torch.cuda.amp.autocast():
+                # Warm up the model with a dummy input to precompile CUDA kernels
+                dummy_input = torch.zeros((1, 3, 224, 224), device="cuda", dtype=torch.float16)
+                # Dummy forward pass to initialize CUDA kernels
+                _ = model.det_predictor.model(dummy_input)
+                
+            logger.info("DocTR model initialized on GPU with FP16 precision")
         else:
             model.to("cpu").eval()
-            self.model = model
-            logger.info("Using CPU for OCR")
+            logger.info("DocTR model initialized on CPU")
+            
+        return model
 
     def render(
         self, file: bytes, file_type: Literal["image", "pdf"]
@@ -40,7 +72,15 @@ class DocTRRunner:
 
         try:
             start_time = time.time()
-            result = self.model(doc).render()
+            
+            # Use mixed precision for inference
+            with torch.cuda.amp.autocast():
+                result = self.model(doc).render()
+                
+            # Clear GPU cache after processing
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                
             end_time = time.time()
             logger.info(f"Time taken to render document: {end_time - start_time} seconds")
             return result
@@ -57,9 +97,13 @@ class DocTRRunner:
         else:
             raise ValueError("Invalid file type")
 
-        
-        result = self.model(doc)
-
+        # Use mixed precision for inference
+        with torch.cuda.amp.autocast():
+            result = self.model(doc)
+            
+        # Clear GPU cache after processing
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         results = [
         OCROut(

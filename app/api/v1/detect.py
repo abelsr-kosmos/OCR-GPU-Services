@@ -2,8 +2,8 @@ import time
 import traceback
 from loguru import logger
 
-from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from starlette.concurrency import run_in_threadpool
 
 from app.dependencies import get_document_detection_service
 from app.services.doc_detector import DocumentDetector
@@ -24,7 +24,11 @@ async def detect(
     try:
         logger.info(f"Detecting documents in file: {file.filename}")
         t0 = time.time()
+        
+        # Use the regular thread pool instead of the specialized ML executor
+        # This avoids circular imports with main.py
         detected_docs = await run_in_threadpool(document_detection_service.detect_docs, file)
+        
         logger.info(f"Detected {len(detected_docs)} documents in {time.time() - t0} seconds")
         return {"success": True, "result": detected_docs if not hide_result else len(detected_docs)}
     

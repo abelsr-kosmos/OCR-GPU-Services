@@ -21,20 +21,26 @@ class SignatureDetector:
 
         if torch.cuda.is_available():
             self.model.to("cuda").eval()
-            logger.info("Using GPU for OCR")
+            logger.info("Loaded Signature Detector model on GPU with FP16 precision")
         else:
             self.model.to("cpu").eval()
-            logger.info("Using CPU for OCR")
+            logger.info("Loaded Signature Detector model on CPU")
+            
+        self.model.args["data"] = (
+            os.path.join(CURRENT_DIR, "data.yaml")
+        )
 
     def detect_signatures(self, image: np.ndarray) -> int:
         """ "
         Method to detect the number of signatures in an image.
         """
-        self.model.args["data"] = (
-            os.path.join(CURRENT_DIR, "data.yaml")
-        )
-        result = self.model(image, conf=0.18, iou=0.3)[0]
+        with torch.no_grad():
+            result = self.model(image, conf=0.18, iou=0.3)[0]
         df = result.to_df()
+        
+        # Clear GPU cache to avoid memory leaks
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         if len(df) == 0:
             return 0
@@ -45,15 +51,18 @@ class SignatureDetector:
         """ "
         Method to extract the signatures from an image.
         """
-        self.model.args["data"] = "data.yaml"
-        result = self.model(image, conf=0.18, iou=0.3)[0]
+        with torch.no_grad():
+            result = self.model(image, conf=0.18, iou=0.3)[0]
         df = result.to_df()
         signatures = []
 
         img = cv2.imread(image)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
         
+        # Clear GPU cache to avoid memory leaks
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         for _, row in df.iterrows():
             if row["class"] == 0:
                 bbox_data = row["box"]

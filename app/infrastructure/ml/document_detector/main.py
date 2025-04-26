@@ -88,21 +88,17 @@ class DocumentDetector:
         else:
             logger.info("Using CPU for OCR")
 
-    def detect(self, input):
-        test_images = [input]
+    def detect(self, input_bytes):
+        test_images = [input_bytes]
         detection_threshold = self.args["threshold"]
         frame_count = 0
         total_fps = 0
         results = []
 
         for i in range(len(test_images)):
-            if isinstance(test_images[i], UploadFile) or hasattr(test_images[i], 'read'):
-                file_bytes = test_images[i].file.read() if hasattr(test_images[i], 'file') else test_images[i].read()
-                nparr = np.frombuffer(file_bytes, np.uint8)
-                orig_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            else:
-                # Read from path
-                orig_image = cv2.imread(test_images[i])
+            bytes_data = test_images[i]
+            bytes_image = np.frombuffer(bytes_data, np.uint8)
+            orig_image = cv2.imdecode(bytes_image, cv2.IMREAD_COLOR)
             _, frame_width, _ = orig_image.shape
             if self.args["imgsz"] != None:
                 RESIZE_TO = self.args["imgsz"]

@@ -1,18 +1,33 @@
 from io import BytesIO
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
+import torch
 import numpy as np
 from PIL import Image
 from qreader import QReader
+import cv2
 
 class QRService:
     def __init__(self) -> None:
         self._reader = QReader()
 
     def _preprocess_image(self, image_bytes: bytes) -> np.ndarray:
-        """Converts image bytes to a NumPy array."""
+        """Converts image bytes to a NumPy array with preprocessing for better QR detection."""
         img = Image.open(BytesIO(image_bytes))
-        return np.array(img)
+        
+        # Convert to numpy array
+        np_img = np.array(img)
+        
+        # Resize large images to reduce processing time
+        # Only resize if larger than 1500 pixels in any dimension
+        height, width = np_img.shape[:2]
+        max_dim = 1500
+        if height > max_dim or width > max_dim:
+            scale = max_dim / max(height, width)
+            new_height, new_width = int(height * scale), int(width * scale)
+            np_img = cv2.resize(np_img, (new_width, new_height), interpolation=cv2.INTER_AREA)
+            
+        return np_img
 
     def detect(self, file: bytes) -> Tuple[np.ndarray, ...]:
         """
@@ -26,7 +41,12 @@ class QRService:
             Refer to QReader documentation for the exact structure.
         """
         np_image = self._preprocess_image(file)
-        detections = self._reader.detect(image=np_image)
+        with torch.cuda.amp.autocast():
+            detections = self._reader.detect(image=np_image)
+            
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
         return detections
 
     def detect_decode(self, file: bytes) -> Tuple[Optional[str], ...]:
@@ -42,7 +62,28 @@ class QRService:
             Refer to QReader documentation for the exact structure.
         """
         np_image = self._preprocess_image(file)
-        # Call the detect_and_decode method of QReader
-        # return_detections=False is default, explicitly stating for clarity if desired
-        decoded_qrs = self._reader.detect_and_decode(image=np_image)
+        with torch.cuda.amp.autocast():
+            # Detect and decode QR codes
+            decoded_qrs = self._reader.detect_and_decode(image=np_image, return_detections=False)
+            
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
         return decoded_qrs
+        
+    def batch_detect_decode(self, files: List[bytes]) -> List[Tuple[Optional[str], ...]]:
+        """
+        Detects and decodes QR codes in multiple images.
+        
+        Args:
+            files: List of image file contents as bytes.
+            
+        Returns:
+            List of tuples containing decoded QR codes for each image.
+        """
+        results = []
+        for file in files:
+            np_image = self._preprocess_image(file)
+            decoded_qrs = self._reader.detect_and_decode(image=np_image, return_detections=False)
+            results.append(decoded_qrs)
+        return results
