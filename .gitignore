@@ -1,2 +1,2 @@
 *.pyc
-.venv
+.venvapp/infrastructure/ml/document_detector/checkpoints/best_model.pth
