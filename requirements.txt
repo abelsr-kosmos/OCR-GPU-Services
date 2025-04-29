@@ -1,6 +1,7 @@
 # FastAPI and web server
 fastapi
 uvicorn
+gunicorn
 python-multipart
 pydantic
 orjson

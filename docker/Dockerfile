@@ -1,5 +1,5 @@
 # Base image with CUDA support
-FROM nvidia/cuda:11.7.1-cudnn8-devel-ubuntu20.04
+FROM nvcr.io/nvidia/paddlepaddle:24.12-py3
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     build-essential \
     libzbar0 \
-    libgl1-mesa-glx \
+    # libgl1-mesa-glx \
     libglib2.0-0 \
     poppler-utils \
     wget \
@@ -36,8 +36,8 @@ RUN if ! command -v python3.10 &> /dev/null; then \
 # Verify python3.10 is installed
 RUN python3.10 --version
 
-# Link python3.10 to python
-RUN ln -s /usr/bin/python3.10 /usr/bin/python
+# Set python3.10 as default python
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 # Copy requirements file
 COPY requirements.txt .
@@ -50,14 +50,13 @@ ENV PATH="/root/.local/bin/:$PATH"
 # Install dependencies
 RUN uv pip install --no-cache-dir --upgrade pip --system && \
     uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --system --no-cache-dir && \
-    uv pip install paddlepaddle-gpu==2.4.2.post117 -f https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html --no-cache-dir --system && \
+    uv pip install paddlepaddle-gpu==3.0.0rc1 -i https://www.paddlepaddle.org.cn/packages/stable/cu118/ --no-cache-dir --system && \
     uv pip install -r requirements.txt --system --no-cache-dir
 
 # Install nltk data
 RUN python -c "import nltk; nltk.download('stopwords')"
 
-# Install Paddle model
-RUN python -c "from paddleocr import PaddleOCR; _ocr = PaddleOCR(use_angle_cls=True, lang='en', use_gpu=False, det_lang='ml', show_log=False)"
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 
 # Install libpangocairo
 RUN apt-get update && apt-get install -y libpangocairo-1.0-0
@@ -65,13 +64,15 @@ RUN apt-get update && apt-get install -y libpangocairo-1.0-0
 # Install doctr model
 RUN python -c "from doctr.models import ocr_predictor; _ocr = ocr_predictor(pretrained=True)"
 
-RUN pip install orjson
+# Expose port
+EXPOSE 8000
+
+# Copy startup script
+COPY startup.sh .
+RUN chmod +x startup.sh
 
 # Copy project files
 COPY . .
 
-# Expose port
-EXPOSE 8000
-
 # Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "10"]
+CMD ["./startup.sh"]
