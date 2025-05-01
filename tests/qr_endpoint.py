@@ -94,7 +94,7 @@ def send_qr_request(request_id: int, file_path: str, url: str) -> Tuple[int, flo
 if __name__ == "__main__":
     # --- Configuration ---
     # Default URL for the QR endpoint
-    qr_url = 'https://lg7q7vlkotwzva-8000.proxy.runpod.net/tools/qr'
+    qr_url = 'https://10va4ptbkmb2bf-8000.proxy.runpod.net/tools/qr'
     # Use a default image or allow override via environment variable
     # Ensure this image actually contains a QR code for meaningful testing
     image_file = 'CFE-Inferencia.jpg'

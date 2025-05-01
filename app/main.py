@@ -68,7 +68,8 @@ async def lifespan(app: FastAPI):
         get_qr_service,
         get_signature_service,
         get_document_detection_service,
-        get_classify_service
+        get_classify_service,
+        get_align_service
     )
     
     # Initialize all services in parallel for faster startup
@@ -78,7 +79,8 @@ async def lifespan(app: FastAPI):
         asyncio.to_thread(lambda: service_cache.update({"qr_service": get_qr_service()})),
         asyncio.to_thread(lambda: service_cache.update({"signature_service": get_signature_service()})),
         asyncio.to_thread(lambda: service_cache.update({"document_detection_service": get_document_detection_service()})),
-        asyncio.to_thread(lambda: service_cache.update({"classify_service": get_classify_service()}))
+        asyncio.to_thread(lambda: service_cache.update({"classify_service": get_classify_service()})),
+        asyncio.to_thread(lambda: service_cache.update({"align_service": get_align_service()}))
     )
     
     logger.info("Services initialized successfully")

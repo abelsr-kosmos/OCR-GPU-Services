@@ -1,11 +1,13 @@
 from io import BytesIO
 from typing import Tuple, Optional, List
 
+import cv2
 import torch
 import numpy as np
 from PIL import Image
 from qreader import QReader
-import cv2
+
+from loguru import logger
 
 class QRService:
     def __init__(self) -> None:
@@ -64,12 +66,21 @@ class QRService:
         np_image = self._preprocess_image(file)
         with torch.cuda.amp.autocast():
             # Detect and decode QR codes
-            decoded_qrs = self._reader.detect_and_decode(image=np_image, return_detections=False)
+            decoded_qrs = self._reader.detect_and_decode(image=np_image, return_detections=True)
+
+        results = []
+        for i in range(len(decoded_qrs[0])):
+            results.append(
+                {
+                    "text": decoded_qrs[0][i],
+                    "bbox_xyxy": decoded_qrs[1][i]['bbox_xyxy'].tolist(),
+                }
+            )
             
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             
-        return decoded_qrs
+        return results
         
     def batch_detect_decode(self, files: List[bytes]) -> List[Tuple[Optional[str], ...]]:
         """

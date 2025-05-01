@@ -34,8 +34,9 @@ class SignatureDetector:
         """ "
         Method to detect the number of signatures in an image.
         """
-        with torch.no_grad():
-            result = self.model(image, conf=0.18, iou=0.3)[0]
+        with torch.cuda.amp.autocast():
+            with torch.no_grad():
+                result = self.model(image, conf=0.18, iou=0.3)[0]
         df = result.to_df()
         
         # Clear GPU cache to avoid memory leaks
@@ -52,7 +53,8 @@ class SignatureDetector:
         Method to extract the signatures from an image.
         """
         with torch.no_grad():
-            result = self.model(image, conf=0.18, iou=0.3)[0]
+            with torch.cuda.amp.autocast():
+                result = self.model(image, conf=0.18, iou=0.3)[0]
         df = result.to_df()
         signatures = []
 

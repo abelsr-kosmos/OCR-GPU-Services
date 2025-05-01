@@ -95,13 +95,13 @@ def send_render_request(request_id: int, file_path: str, url: str) -> Tuple[int,
 if __name__ == "__main__":
     # --- Configuration ---
     # Default URL for the render endpoint
-    render_url = 'https://lg7q7vlkotwzva-8000.proxy.runpod.net/tools/doctr?operation=render'
+    render_url = 'https://7ye8qosdl3igmb-8000.proxy.runpod.net/tools/doctr?operation=render'
     # Use a default image or allow override via environment variable
     image_file = 'RECIBO_TELMEX.jpg'
     # Number of requests per concurrency level (adjust if needed)
-    requests_per_level = 10
+    requests_per_level = 20
     # Concurrency levels to test
-    concurrency_levels = range(1, 10) # Test from 1 to 5 concurrent requests (adjust as needed)
+    concurrency_levels = [1, 4, 8] # Test from 1 to 5 concurrent requests (adjust as needed)
     # --- End Configuration ---
 
     # Check if the file exists before starting

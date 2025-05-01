@@ -49,8 +49,8 @@ ENV PATH="/root/.local/bin/:$PATH"
 
 # Install dependencies
 RUN uv pip install --no-cache-dir --upgrade pip --system && \
-    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118 --system --no-cache-dir && \
-    uv pip install paddlepaddle-gpu==3.0.0rc1 -i https://www.paddlepaddle.org.cn/packages/stable/cu118/ --no-cache-dir --system && \
+    uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126 --no-cache-dir --system && \
+    uv pip install paddlepaddle-gpu==3.0.0rc1 -i https://www.paddlepaddle.org.cn/packages/stable/cu126/ --no-cache-dir --system && \
     uv pip install -r requirements.txt --system --no-cache-dir
 
 # Install nltk data

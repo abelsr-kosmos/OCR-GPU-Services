@@ -1,15 +1,18 @@
 import time
+from io import BytesIO
 from typing import Literal
 
 from PIL import Image
+from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, Query
 
 from app.services.qr_service import QRService
 from app.services.doctr_service import DocTRService
+from app.services.align_service import AlignService
 from app.services.paddle_service import PaddleService
 from app.services.signature_service import SignatureService
-from app.dependencies import get_paddle_service, get_doctr_service, get_qr_service, get_signature_service
+from app.dependencies import get_paddle_service, get_doctr_service, get_qr_service, get_signature_service, get_align_service
 
 import traceback
 from loguru import logger
@@ -90,6 +93,40 @@ async def signature(
         result = await run_in_threadpool(signature_service.detect, file_bytes, return_img)
         logger.info(f"Processed file: {file.filename} in {time.time() - t0} seconds")
         return {"signatures": result}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@router.post("/align")
+async def align(
+    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to align"),
+    align_service: AlignService = Depends(get_align_service)
+):
+    """
+    Align a document image to correct perspective and return the aligned image
+    
+    Args:
+        file: File uploaded by the user
+        align_service: Service to handle alignment
+        
+    Returns:
+        StreamingResponse containing the aligned image as JPEG
+    """
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+        raise HTTPException(status_code=415, detail="Unsupported file type")
+    try:
+        t_start = time.time()
+        file_bytes = await file.read()
+        
+        # Alignment processing
+        t_align = time.time()
+        result = await run_in_threadpool(align_service.align, file_bytes)
+        t_align_end = time.time()
+        logger.info(f"Time for alignment service: {t_align_end - t_align} seconds")
+        
+        response = StreamingResponse(BytesIO(result), media_type="image/jpeg")
+        return response
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

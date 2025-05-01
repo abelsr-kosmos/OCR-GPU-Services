@@ -35,16 +35,6 @@ class DocTRRunner:
         if torch.cuda.is_available():
             # Use mixed precision for better performance
             model.to("cuda").eval().half()
-            
-            # # Compile using TensorRT if available
-            # model = torch.compile(
-            #     model,
-            #     backend='torch_tensorrt',
-            #     options={
-            #         "enabled_precisions": {torch.float16},
-            #     }
-            # )
-            
             # Set lower precision for inference to save memory
             with torch.cuda.amp.autocast():
                 # Warm up the model with a dummy input to precompile CUDA kernels
@@ -75,7 +65,8 @@ class DocTRRunner:
             
             # Use mixed precision for inference
             with torch.cuda.amp.autocast():
-                result = self.model(doc).render()
+                with torch.no_grad():
+                    result = self.model(doc).render()
                 
             # Clear GPU cache after processing
             if torch.cuda.is_available():

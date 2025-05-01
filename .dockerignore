@@ -38,3 +38,6 @@ docker-compose*
 
 # virtualenv
 .venv/
+
+# csv
+*.csv

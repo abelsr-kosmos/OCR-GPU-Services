@@ -113,8 +113,9 @@ class DocumentDetector:
             image = infer_transforms(image)
             image = torch.unsqueeze(image, 0)
             start_time = time.time()
-            with torch.no_grad():
-                outputs = self.model(image.to(self.DEVICE))
+            with torch.cuda.amp.autocast():
+                with torch.no_grad():
+                    outputs = self.model(image.to(self.DEVICE))
             end_time = time.time()
 
             fps = 1 / (end_time - start_time)

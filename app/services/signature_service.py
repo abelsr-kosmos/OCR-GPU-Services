@@ -19,20 +19,13 @@ class SignatureService:
         # Preprocess image once
         img_array = self._preprocess_image(file)
         
-        # Use GPU with mixed precision if available
-        if torch.cuda.is_available():
-            with torch.cuda.amp.autocast():
-                if return_img:
-                    result = self._detector.extract_signatures(img_array)
-                else:
-                    result = self._detector.detect_signatures(img_array)
+        if return_img:
+            result = self._detector.extract_signatures(img_array)
+        else:
+            result = self._detector.detect_signatures(img_array)
                 
             # Clean up GPU memory
+        if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        else:
-            if return_img:
-                result = self._detector.extract_signatures(img_array)
-            else:
-                result = self._detector.detect_signatures(img_array)
         
         return result
