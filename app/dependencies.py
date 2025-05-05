@@ -1,5 +1,3 @@
-from fastapi import Depends
-from functools import lru_cache
 from app.services.qr_service import QRService
 from app.services.classify import ClassifyService
 from app.services.align_service import AlignService
@@ -7,6 +5,7 @@ from app.services.doctr_service import DocTRService
 from app.services.paddle_service import PaddleService
 from app.services.doc_detector import DocumentDetector
 from app.services.signature_service import SignatureService
+
 try:
     from app.main import service_cache
 except ImportError:

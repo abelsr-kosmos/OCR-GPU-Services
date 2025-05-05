@@ -1,8 +1,10 @@
 import time
+import traceback
 from io import BytesIO
 from typing import Literal
 
 from PIL import Image
+from loguru import logger
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from fastapi import APIRouter, File, UploadFile, Depends, HTTPException, Query
@@ -14,8 +16,6 @@ from app.services.paddle_service import PaddleService
 from app.services.signature_service import SignatureService
 from app.dependencies import get_paddle_service, get_doctr_service, get_qr_service, get_signature_service, get_align_service
 
-import traceback
-from loguru import logger
 
 router = APIRouter(
     prefix="",
@@ -27,16 +27,43 @@ async def paddle_ocr(
     file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to detect documents in"), 
     paddle_service: PaddleService = Depends(get_paddle_service)
 ):
+    """
+    Extract text from an image using PaddleOCR
+    
+    Args:
+        file: The image file to process
+        paddle_service: The service to use for OCR
+        
+    Returns:
+        Dictionary of OCR results
+    """
     if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
         raise HTTPException(status_code=415, detail="Unsupported file type")
+    
     try:
+        t_total = time.time()
         logger.info(f"Processing file: {file.filename}")
+        
+        # Read file with timing
+        t_read = time.time()
+        file_content = await file.read()
+        file.file.seek(0)  # Reset file pointer for next read
+        logger.info(f"File read completed in {time.time() - t_read:.4f} seconds")
+        
+        # Open image with PIL and timing
+        t_open = time.time()
         image = Image.open(file.file)
-        t0 = time.time()
+        logger.info(f"Image opened in {time.time() - t_open:.4f} seconds")
+        
+        # Run OCR with timing
+        t_ocr = time.time()
         result = await run_in_threadpool(paddle_service.ocr, image)
-        logger.info(f"Processed file: {file.filename} in {time.time() - t0} seconds")
+        logger.info(f"OCR processing completed in {time.time() - t_ocr:.4f} seconds")
+        
+        logger.info(f"Total processing time for {file.filename}: {time.time() - t_total:.4f} seconds")
         return result
     except Exception as e:
+        logger.error(f"Error processing {file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/doctr")
@@ -45,18 +72,43 @@ async def doctr(
     operation: Literal["ocr", "render"] = Query(..., description="The operation to perform"),
     doctr_service: DocTRService = Depends(get_doctr_service)
 ):
+    """
+    Process an image with DocTR for OCR or visualization
+    
+    Args:
+        file: The image file to process
+        operation: The operation to perform (ocr or render)
+        doctr_service: The service to use for DocTR processing
+        
+    Returns:
+        OCR results or rendered visualization
+    """
     if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
         raise HTTPException(status_code=415, detail="Unsupported file type")
     try:
+        t_total = time.time()
         logger.info(f"Processing file: {file.filename}")
-        t0 = time.time()
+        
+        # Read file with timing
+        t_read = time.time()
         file_bytes = await file.read()
+        logger.info(f"File read completed in {time.time() - t_read:.4f} seconds")
+        
+        # Process with doctr
+        t_process = time.time()
         if operation == "ocr":
             result = await run_in_threadpool(doctr_service.ocr, file_bytes, file.filename.split(".")[-1])
+            logger.info(f"DocTR OCR processing completed in {time.time() - t_process:.4f} seconds")
         elif operation == "render":
             result = await run_in_threadpool(doctr_service.render, file_bytes, file.filename.split(".")[-1])
+            logger.info(f"DocTR render processing completed in {time.time() - t_process:.4f} seconds")
+        else:
+            raise HTTPException(status_code=400, detail=f"Invalid operation: {operation}")
+            
+        logger.info(f"Total DocTR processing time for {file.filename}: {time.time() - t_total:.4f} seconds")
         return result
     except Exception as e:
+        logger.error(f"Error processing {file.filename} with DocTR: {str(e)}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

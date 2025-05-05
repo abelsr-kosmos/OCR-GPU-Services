@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, UploadFile, File, Body, HTTPException, Depends
 from starlette.concurrency import run_in_threadpool
+from fastapi import APIRouter, UploadFile, File, Body, HTTPException, Depends
 
 from app.dependencies import get_classify_service
 from app.services.classify import ClassifyService

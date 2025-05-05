@@ -20,18 +20,14 @@ torch.backends.cudnn.deterministic = False
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
-torch.set_float32_matmul_precision('high')  # For PyTorch 2.0+
+torch.set_float32_matmul_precision('high')
 torch.set_default_device("cuda" if torch.cuda.is_available() else "cpu")
 logger.info(f"Using device for ML Inference: {'cuda' if torch.cuda.is_available() else 'cpu'}")
 
-# Dictionary to store service instances
-service_cache = {}
 
-# Create a dedicated thread pool executor for ML tasks
-# This will improve performance by reusing threads for ML operations
+service_cache = {}
 ml_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ml_worker")
 
-# Define the decorator here, but don't rely on imports from routers
 def run_in_ml_executor(func):
     """Decorator to run a function in the ML thread pool executor"""
     @functools.wraps(func)

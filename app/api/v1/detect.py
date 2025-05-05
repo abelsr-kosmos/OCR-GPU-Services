@@ -1,12 +1,12 @@
 import time
 import traceback
+
 from loguru import logger
-
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from starlette.concurrency import run_in_threadpool
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 
-from app.dependencies import get_document_detection_service
 from app.services.doc_detector import DocumentDetector
+from app.dependencies import get_document_detection_service
 
 router = APIRouter(
     prefix="/doc-detection",
