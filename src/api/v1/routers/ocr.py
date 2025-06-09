@@ -46,6 +46,7 @@ async def process_file(
         
         # Step 1: Read and process the image
         contents = await file.read()
+        await file.close()
         
         # Check file extension
         extension = file.filename.split(".")[-1].lower()
@@ -109,9 +110,14 @@ async def process_file(
         def cleanup():
             if 'image' in locals():
                 del image
+            if 'doc' in locals():
+                del doc
+            del contents
             # Explicitly clear CUDA cache to free GPU memory
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+            import gc
+            gc.collect()
             
         background_tasks.add_task(cleanup)
         
@@ -125,7 +131,9 @@ async def process_file(
         # Ensure GPU memory is cleared even on error
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+        import gc
+        gc.collect()
         return ProcessResponse(
             message=f"Error processing file: {str(e)}",
             status="error"
-        ) 
+        )
