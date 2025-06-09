@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Query, Depends, BackgroundTasks
 from typing import Optional
 import asyncio
+import torch
 
 from ....config import setup_logging
 from ....infrastructure.utils.image_processing import ImageProcessor
@@ -38,6 +39,7 @@ async def classify_and_process_file(
         
         # Step 1: Read and process the image
         contents = await file.read()
+        await file.close()
         image = await process_image(contents)
         
         # Step 2: Align the image
@@ -102,6 +104,11 @@ async def classify_and_process_file(
         def cleanup():
             del image
             del aligned_image
+            del contents
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            import gc
+            gc.collect()
             
         background_tasks.add_task(cleanup)
         
@@ -112,7 +119,11 @@ async def classify_and_process_file(
         )
     except Exception as e:
         logger.error(f"Error processing file: {str(e)}", exc_info=True)
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        import gc
+        gc.collect()
         return ProcessResponse(
             message=f"Error processing file: {str(e)}",
             status="error"
-        ) 
+        )
