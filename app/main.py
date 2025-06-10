@@ -9,9 +9,6 @@ from contextlib import asynccontextmanager
 from fastapi.responses import ORJSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.services.doctr_service import DocTRService
-from app.services.paddle_service import PaddleService
-
 from loguru import logger
 
 # Set CUDA optimizations for better performance
@@ -59,9 +56,9 @@ async def lifespan(app: FastAPI):
     
     # Import here to avoid circular imports
     from app.dependencies import (
+        get_qr_service,
         get_paddle_service,
         get_doctr_service,
-        get_qr_service,
         get_signature_service,
         get_document_detection_service,
         get_classify_service,
@@ -80,6 +77,32 @@ async def lifespan(app: FastAPI):
     )
     
     logger.info("Services initialized successfully")
+    
+    # Log model summary
+    try:
+        summary = "\n--- Model Initialization Summary ---"
+        for name, service in service_cache.items():
+            device = "Unknown"
+            # Attempt to get device info based on service type/attributes
+            if hasattr(service, '_runner') and hasattr(service._runner, 'model') and hasattr(service._runner.model, 'device'): # DocTR
+                device = str(service._runner.model.device)
+            elif hasattr(service, '_paddle_runner') and hasattr(service._paddle_runner, 'use_gpu'): # Paddle
+                device = "gpu" if service._paddle_runner.use_gpu else "cpu"
+            elif hasattr(service, 'detector') and hasattr(service.detector, 'DEVICE'): # DocumentDetector service wrapper?
+                device = service.detector.DEVICE
+            elif hasattr(service, 'aligner') and hasattr(service.aligner, 'model') and hasattr(service.aligner.model, 'device'): # Align service wrapper?
+                 device = str(service.aligner.model.device)
+            elif hasattr(service, 'model') and hasattr(service.model, 'device'): # Generic check
+                 device = str(service.model.device)
+            elif hasattr(service, 'DEVICE'): # Direct attribute
+                 device = service.DEVICE
+
+            summary += f"\n- {name}: Initialized (Device: {device})"
+        summary += "\n----------------------------------"
+        logger.info(summary)
+    except Exception as e:
+        logger.warning(f"Could not generate model summary: {e}")
+        
     yield
     # Clean shutdown
     ml_executor.shutdown(wait=True)
@@ -132,21 +155,36 @@ async def preload_services_event():
     asyncio.create_task(preload_models())
 
 async def preload_models():
-    """Explicitly trigger model downloads to shared cache directories"""
+    """Explicitly trigger model downloads/loading using singleton service instances"""
     try:
-        logger.info("Preloading models to shared cache directories...")
+        logger.info("Preloading models using singleton service instances...")
+        # Import getter functions here to be used by _preload functions
+        from app.dependencies import get_doctr_service, get_paddle_service
+
         await asyncio.gather(
-            asyncio.to_thread(_preload_doctr_model),
-            asyncio.to_thread(_preload_paddle_model)
+            asyncio.to_thread(_preload_doctr_model, get_doctr_service),
+            asyncio.to_thread(_preload_paddle_model, get_paddle_service)
         )
         logger.info("Model preloading completed successfully")
     except Exception as e:
         logger.error(f"Error during model preloading: {e}")
 
-def _preload_doctr_model():
-    doctr_service = DocTRService()
-    return doctr_service._runner.model
+def _preload_doctr_model(getter_func):
+    """Preloads DocTR model using its singleton service instance."""
+    logger.info("Preloading DocTR model via singleton service...")
+    doctr_service = getter_func() # Use the passed getter to get the singleton
+    # Accessing the model attribute on the runner should trigger its initialization
+    # if DocTRRunner's own singleton logic hasn't already done so.
+    model = doctr_service._runner.model 
+    logger.info(f"DocTR model preloaded: {type(model)}")
+    return model
 
-def _preload_paddle_model():
-    paddle_service = PaddleService()
-    return paddle_service._paddle_runner.ocr
+def _preload_paddle_model(getter_func):
+    """Preloads PaddleOCR model using its singleton service instance."""
+    logger.info("Preloading PaddleOCR model via singleton service...")
+    paddle_service = getter_func() # Use the passed getter to get the singleton
+    # Accessing the ocr attribute on the runner should trigger its initialization.
+    # PaddleService.__init__ creates PaddleOCRRunner, which loads the model.
+    ocr_engine = paddle_service._paddle_runner.ocr
+    logger.info(f"PaddleOCR model preloaded: {type(ocr_engine)}")
+    return ocr_engine

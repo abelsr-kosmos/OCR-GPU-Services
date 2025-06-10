@@ -11,4 +11,4 @@ wget https://download.pytorch.org/models/resnet50-0676ba61.pth -P /root/.cache/t
 wget https://download.pytorch.org/models/fasterrcnn_resnet50_fpn_coco-258fb6c6.pth -P /root/.cache/torch/hub/checkpoints/
 
 # Start the server
-gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers 4
+gunicorn app.main:app --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --workers $WORKERS --threads $THREADS

@@ -24,7 +24,7 @@ router = APIRouter(
 
 @router.post("/paddle-ocr")
 async def paddle_ocr(
-    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to detect documents in"), 
+    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg", "application/pdf"], description="The image to detect documents in"), 
     paddle_service: PaddleService = Depends(get_paddle_service)
 ):
     """
@@ -37,7 +37,7 @@ async def paddle_ocr(
     Returns:
         Dictionary of OCR results
     """
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg", "application/pdf"]:
         raise HTTPException(status_code=415, detail="Unsupported file type")
     
     try:
@@ -68,7 +68,7 @@ async def paddle_ocr(
 
 @router.post("/doctr")
 async def doctr(
-    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to detect documents in"), 
+    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg", "application/pdf"], description="The image to detect documents in"), 
     operation: Literal["ocr", "render"] = Query(..., description="The operation to perform"),
     doctr_service: DocTRService = Depends(get_doctr_service)
 ):
@@ -83,7 +83,7 @@ async def doctr(
     Returns:
         OCR results or rendered visualization
     """
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg", "application/pdf"]:
         raise HTTPException(status_code=415, detail="Unsupported file type")
     try:
         t_total = time.time()
@@ -114,11 +114,11 @@ async def doctr(
 
 @router.post("/qr")
 async def qr(
-    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to detect documents in"), 
+    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg", "application/pdf"], description="The image to detect documents in"), 
     qr_service: QRService = Depends(get_qr_service)
 ):
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
-        raise HTTPException(status_code=415, detail="Unsupported file type")
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg", "application/pdf"]:
+        raise HTTPException(status_code=415, detail="Unsupported file type. Received file type: " + file.content_type)
     try:
         logger.info(f"Processing file: {file.filename}")
         file_bytes = await file.read()
@@ -132,11 +132,11 @@ async def qr(
 
 @router.post("/signature")
 async def signature(
-    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to detect documents in"), 
+    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg", "application/pdf"], description="The image to detect documents in"), 
     return_img: bool = Query(False, description="Whether to return the image with the signatures detected"),
     signature_service: SignatureService = Depends(get_signature_service)
 ):
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg", "application/pdf"]:
         raise HTTPException(status_code=415, detail="Unsupported file type")
     try:
         logger.info(f"Processing file: {file.filename}")
@@ -152,7 +152,7 @@ async def signature(
     
 @router.post("/align")
 async def align(
-    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg"], description="The image to align"),
+    file: UploadFile = File(..., media_type=["image/jpeg", "image/png", "image/jpg", "application/pdf"], description="The image to align"),
     align_service: AlignService = Depends(get_align_service)
 ):
     """
@@ -165,7 +165,7 @@ async def align(
     Returns:
         StreamingResponse containing the aligned image as JPEG
     """
-    if file.content_type not in ["image/jpeg", "image/png", "image/jpg"]:
+    if file.content_type not in ["image/jpeg", "image/png", "image/jpg", "application/pdf"]:
         raise HTTPException(status_code=415, detail="Unsupported file type")
     try:
         t_start = time.time()

@@ -2,12 +2,14 @@ import torch
 import numpy as np
 from PIL import Image
 from torchvision import transforms
+from loguru import logger
 
 from app.infrastructure.ml.aligner.utils import model
 
 
 class GetCorners:
     def __init__(self, checkpoint_dir):
+        logger.info("Loading Corner Extractor model...")
         self.model = model.ModelFactory.get_model("resnet", "document")
         
         # Use GPU if available for model loading
@@ -27,6 +29,7 @@ class GetCorners:
         if torch.cuda.is_available():
             self.model.cuda()
         self.model.eval()
+        logger.info(f"Corner Extractor model loaded successfully on device: {device}")
         
         # Pre-cache transforms for efficiency
         self.test_transform = transforms.Compose(

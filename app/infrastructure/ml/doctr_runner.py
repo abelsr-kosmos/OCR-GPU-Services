@@ -41,7 +41,7 @@ class DocTRRunner:
     def _initialize_model(self):
         # Initialize the model with optimized settings
         t_start = time.time()
-        logger.info("Loading DocTR model...")
+        logger.info("Loading DocTR base model weights...")
         import torch
         try:
             # Try to determine if we can use a lighter model based on available memory
@@ -60,7 +60,7 @@ class DocTRRunner:
                 model = ocr_predictor(pretrained=True)
                 logger.info("Using standard model architecture")
                 
-            logger.info(f"Base model loaded in {time.time() - t_start:.4f} seconds")
+            logger.info(f"Base model weights loaded in {time.time() - t_start:.4f} seconds")
             
             if torch.cuda.is_available():
                 # Record GPU info
@@ -144,7 +144,7 @@ class DocTRRunner:
                         _ = model.det_predictor.model(dummy_input)
                         logger.info(f"Model warmup completed in {time.time() - t_warmup:.4f} seconds")
                         
-                    logger.info(f"DocTR model initialized on GPU with optimized precision")
+                    logger.info(f"DocTR model finalized on device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
                 except Exception as e:
                     # Fallback to standard GPU without mixed precision
                     logger.warning(f"Failed to initialize with optimized settings: {e}")
@@ -152,7 +152,7 @@ class DocTRRunner:
                     torch.cuda.empty_cache()  # Clear any failed allocations
                     model = ocr_predictor(pretrained=True)  # Reload model
                     model.to("cuda").eval()
-                    logger.info("DocTR model initialized on GPU with standard precision")
+                    logger.info(f"DocTR model finalized on device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
             else:
                 logger.info("No GPU detected, using CPU")
                 # Try to optimize for CPU
@@ -172,7 +172,7 @@ class DocTRRunner:
                 except Exception as ce:
                     logger.warning(f"CPU optimization failed: {ce}")
                 
-                logger.info("DocTR model initialized on CPU")
+                logger.info(f"DocTR model finalized on device: CPU")
                 
             return model
             

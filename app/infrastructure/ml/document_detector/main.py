@@ -49,6 +49,7 @@ class DocumentDetector:
 
     def _load_model(self):
         """Carga el modelo de detección de objetos"""
+        logger.info("Loading Document Detector model...")
         if self.args["weights"] is None:
             if self.data_configs is None:
                 with open(
@@ -82,6 +83,7 @@ class DocumentDetector:
             self.model.load_state_dict(checkpoint["model_state_dict"])
         
         self.model.to(self.DEVICE).eval()
+        logger.info(f"Document Detector model loaded successfully on device: {self.DEVICE}")
         if torch.cuda.is_available():
             self.model.half()
             logger.info("Using GPU for OCR")

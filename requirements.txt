@@ -16,7 +16,6 @@ loguru
 
 # OCR and ML libraries
 opencv-python
-paddlepaddle-gpu
 git+https://github.com/sfernandez26/PaddleOCR.git
 numpy
 pillow

@@ -5,10 +5,12 @@ from PIL import Image
 from torchvision import transforms
 
 from app.infrastructure.ml.aligner.utils import model
+from loguru import logger
 
 
 class corner_finder:
     def __init__(self, CHECKPOINT_DIR):
+        logger.info("Loading Corner Refiner model...")
         self.model = model.ModelFactory.get_model("resnet", "corner")
         model_data_dict = torch.load(CHECKPOINT_DIR, map_location="cuda" if torch.cuda.is_available() else "cpu")
         model_state_dict = self.model.state_dict()
@@ -21,6 +23,7 @@ class corner_finder:
         if torch.cuda.is_available():
             self.model.cuda()
         self.model.eval()
+        logger.info(f"Corner Refiner model loaded successfully on device: {'cuda' if torch.cuda.is_available() else 'cpu'}")
         
         # Cache the transform
         self.test_transform = transforms.Compose(

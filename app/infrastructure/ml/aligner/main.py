@@ -4,6 +4,7 @@ import time
 import torch
 import numpy as np
 from torch import nn
+from loguru import logger
 from PIL import Image, ImageOps
 from torchvision import models, transforms
 
@@ -34,7 +35,7 @@ def build_model():
         nn.ReLU(),
         nn.Dropout(0.5),
         nn.Linear(512, 1),
-        nn.Sigmoid(),  # Salida binaria
+        nn.Sigmoid(),
     )
 
     return model.to(device)
@@ -68,8 +69,10 @@ class AlignerModel(object):
         )
 
         self.model = build_model()
+        logger.info("Loading Aligner (ResNet) model...")
         self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
+        logger.info(f"Aligner (ResNet) model loaded successfully on device: {device}")
         self.transform = transforms.Compose(
             [
                 transforms.Resize((224, 224)),

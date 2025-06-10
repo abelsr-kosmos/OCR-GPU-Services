@@ -60,7 +60,7 @@ class PaddleOCRRunner:
             'enable_mkldnn': not self.use_gpu,
             'cpu_threads': 8 if not self.use_gpu else 1,
             'use_tensorrt': False,
-            'precision': 'trt_fp16' if self.use_gpu else 'fp16',
+            'precision': 'fp16',
             'trt_min_subgraph_size': 5,
             'rec_batch_num': 64,
             'cls_batch_num': 64,
@@ -69,7 +69,9 @@ class PaddleOCRRunner:
         }
             
         # Initialize OCR with the configured arguments
+        logger.info("Loading PaddleOCR model...")
         self.ocr = PaddleOCR(**ocr_args)
+        logger.info(f"PaddleOCR model loaded successfully on device: {'gpu' if self.use_gpu else 'cpu'}")
         
         # Pre-warm the model with a dummy image to compile any lazy operations
         try:
@@ -92,15 +94,13 @@ class PaddleOCRRunner:
                 
             # Process based on device
             if self.use_gpu:
-                # Set the appropriate GPU execution strategy
                 paddle.set_device('gpu')
                 
-                # Enable memory optimization
                 paddle.device.cuda.empty_cache()
                 
                 # Record GPU memory before processing
                 t_process = time.time()
-                with paddle.amp.auto_cast(enable=True):  # Enable mixed precision
+                with paddle.amp.auto_cast(enable=True):
                     result = self.ocr.ocr(image, cls=True)
                 logger.info(f"OCR processing time: {time.time() - t_process:.4f} seconds")
             else:

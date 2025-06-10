@@ -74,6 +74,15 @@ COPY --from=builder /app/app ./app
 
 RUN chmod +x startup.sh
 
-# 4. Expone puerto y arranca
+# 4. Instala pdf2image
+RUN uv pip install pdf2image
+
+# 5. Instalar Poppler
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      poppler-utils && \
+    rm -rf /var/lib/apt/lists/*
+
+# 6. Expone puerto y arranca
 EXPOSE 8000
 ENTRYPOINT ["./startup.sh"]
